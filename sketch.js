@@ -45,6 +45,8 @@ var settings = {
     maxColorDist : 128,
     reduceWithinDistance : reduceWithinDistance,
     reduceInconditional : reduceInconditional,
+    mergeBackground : mergeBackground,
+    mergeBySegmentClass : mergeBySegmentClass,
     layout : 'left-right',
     'shrink-to-fit' : true,
 
@@ -57,6 +59,8 @@ function setupGui() {
     gui.add (settings, 'segmentMethod', ['palette', 'background'])
     gui.addColor (settings, 'background');
     gui.add (settings, 'bkgTolerance', 0, 255);
+    gui.add (settings, 'mergeBackground');
+    gui.add (settings, 'mergeBySegmentClass');
     gui.add (settings, 'segment');
     gui.add (settings, 'reduceInconditional');
     gui.add (settings, 'maxColorDist', 1, 256);
@@ -204,6 +208,49 @@ function reduceSegments (segs, candidates) {
 	console.log (segs);
 }
 
+
+//
+// Merge all components that have background color
+//
+function mergeBackground () {
+	// Merge the background components
+	var bkgClass = segs[0].segmentClass;
+	var merged = [];
+	var mergedBkg = null;
+	console.log (segs.length + " segments originally");
+	for (let seg of segs) {
+		var i = seg.segmentClass;
+		if (i == bkgClass) {
+			if (mergedBkg) mergedBkg.merge (seg);
+			else mergedBkg = seg;
+		}
+		else merged.push (seg);
+	}
+	merged.push (mergedBkg);
+	segs = merged;
+	compressArray(segs);
+	console.log (segs);
+	segmentsToImages();
+}
+
+
+//
+// Merge all components by segmentClass
+//
+function mergeBySegmentClass () {
+	var merged = new Array (settings.colors);
+	console.log (segs.length + " segments originally");
+	for (let seg of segs) {
+		var i = seg.segmentClass;
+		if (merged[i]) merged[i].merge(seg);
+		else merged[i] = seg;
+	}
+	segs = merged;
+	compressArray(segs);
+	console.log (segs);	
+	segmentsToImages();
+}
+
 //
 // Performs the segmentation of the loaded image (imgData)
 //
@@ -249,17 +296,6 @@ function segment () {
 
 	segs = segmenter (imgData, classifier, diff);
 
-	// Merge all components with the same classification
-	var merged = new Array (settings.colors);
-	console.log (segs.length + " segments originally");
-	for (let seg of segs) {
-		var i = seg.segmentClass;
-		if (merged[i]) merged[i].merge(seg);
-		else merged[i] = seg;
-	}
-	segs = merged;
-	compressArray(segs);
-	console.log (segs);
 	segmentsToImages();
 }
 
